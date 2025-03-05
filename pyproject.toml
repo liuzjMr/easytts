@@ -1,0 +1,39 @@
+[project]
+name = "easytts"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.10, <3.12"
+dependencies = [
+    "boto3>=1.37.4",
+    "chardet>=5.2.0",
+    "edge-tts>=7.0.0",
+    "flask==3.0.1",
+    "flask-cors>=5.0.0",
+    "jieba==0.42.1",
+    "pydantic>=2.10.6",
+    "pyqt6==6.4.2",
+    "pyqt6-tools==6.4.2.3.3",
+    "pyside6>=6.6.3.1",
+    "requests>=2.32.3",
+    "torch>=2.5.1",
+    "tqdm>=4.67.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyside6>=6.6.3.1",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cu124", marker = "platform_system != 'Darwin'" },
+]
+torchvision = [
+  { index = "pytorch-cu124", marker = "platform_system != 'Darwin'" },
+]

@@ -1,0 +1,13 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/icons">
+        <!-- 音频控制 -->
+        <file>before.svg</file>
+        <file>download.svg</file>
+        <file>muti.svg</file>
+        <file>next.svg</file>
+        <file>pause.svg</file>
+        <file>play.svg</file>
+        <file>sound.svg</file>
+    </qresource>
+</RCC>
