@@ -32,6 +32,8 @@ cd easytts
 
 推荐使用 [uv](https://docs.astral.sh/uv/) 作为依赖管理工具。
 
+如果你更想用conda/venv来管理环境也是可以的，我们提供了统一的requirements.txt。
+
 uv安装方法：
 
 ```bash
