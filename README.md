@@ -103,7 +103,6 @@ uv run python main.py
 │   ├── speaker_identification/  # 说话人识别模块
 │   ├── ui/             # GUI界面定义
 │   └── utils.py        # 工具函数
-├── static/             # 静态文件
 └── cache/              # 缓存目录
     ├── audio/          # 音频文件缓存
     ├── text/           # 文本文件缓存
