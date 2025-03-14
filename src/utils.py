@@ -49,33 +49,41 @@ class TTSPoolWorker(QRunnable):
 
 def get_text_from_file(input_file: str) -> str:
     def read_text_file(file_path):
-        # 检测文件编码
-        with open(file_path, 'rb') as f:
-            raw_data = f.read()
-            detected = chardet.detect(raw_data)
-            encoding = detected['encoding']
-        
         try:
+            # 检测文件编码
+            with open(file_path, 'rb') as f:
+                raw_data = f.read()
+                detected = chardet.detect(raw_data)
+                encoding = detected['encoding']
             # 使用检测到的编码读取文件
             with open(file_path, 'r', encoding=encoding) as f:
                 return f.read()
         except Exception as e:
-            print(f"文件格式不支持: {e}")
+            print(f"读取{file_path}文件出错: {e}")
+            raise e
             
     
     def read_epub_file(file_path):
         book = epub.read_epub(file_path)
         text = ""
-        for item in book.get_items():
-            if item.get_type() == ebooklib.ITEM_DOCUMENT:
-                soup = BeautifulSoup(item.get_content(), 'html.parser')
-                text += soup.get_text() + "\n"
-        return text
+        try:
+            for item in book.get_items():
+                if item.get_type() == ebooklib.ITEM_DOCUMENT:
+                    soup = BeautifulSoup(item.get_content(), 'html.parser')
+                    text += soup.get_text()
+            return text
+        except Exception as e:
+            print(f"读取{file_path}文件出错: {e}")
+            raise e
     
     def read_mobi_file(file_path):
-        book = mobi.Mobi(file_path)
-        return book.get_text()
-    
+        try:
+            book = mobi.Mobi(file_path)
+            return book.get_text()
+        except Exception as e:
+            print(f"读取{file_path}文件出错: {e}")
+            raise e
+        
     # 根据文件扩展名选择读取方式
     file_ext = Path(input_file).suffix.lower()
     if file_ext == '.epub':

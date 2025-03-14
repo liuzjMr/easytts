@@ -16,16 +16,66 @@ class TextPreprocessor:
         
         self.name_extractor = NameExtractor(name_file)
 
-    def extract_quotes(self, text: str) -> List[Tuple[str, int, int]]:
-        """提取文本中的引文
+
+    @staticmethod
+    def _split_by_regex(text: str, pattern: str, times: int = 1) -> List[Tuple[str, int, int]]:
+        """使用正则表达式进行分句
         Args:
             text: 输入文本
+            pattern: 分句的正则表达式
+            times: 匹配次数，每匹配到第times个才进行分句，默认为1
         Returns:
-            List[Tuple[str, int, int]]: 引文列表，每个元素为(引文内容, 开始位置, 结束位置)
+            List[Tuple[str, int, int]]: 分句结果，每个元素为(句子内容, 开始位置, 结束位置)
         """
-        # 支持中英文引号：""''「」『』
-        quotes = []
-        # 定义不同类型的引号对
+        sentences = []
+        start = 0
+        count = 0
+        
+        for match in re.finditer(pattern, text):
+            count += 1
+            # 只有当匹配次数是times的倍数时才进行分句
+            if count % times == 0:
+                end = match.end()
+                if (end-start) > times:
+                    sentence = text[start:end].strip()
+                    sentences.append((sentence, start, end))
+                start = end
+                
+        # 处理最后一个句子
+        if start < len(text):
+            sentence = text[start:].strip()
+            if sentence:
+                sentences.append((sentence, start, len(text)))
+                
+        # 删除全是标点符号的句子
+        punctuation_pattern = r'^[，。！？：；、''"",.!?:;\s\n]+$'
+        filtered_sentences = []
+        
+        # 过滤全是标点符号的句子
+        for sent_text, start_pos, end_pos in sentences:
+            if not re.match(punctuation_pattern, sent_text):
+                filtered_sentences.append((sent_text, start_pos, end_pos))
+        
+        return filtered_sentences
+
+    @staticmethod
+    def split_sentences(text: str, split_rule: str) -> Tuple[List[Tuple[str, int, int, int]], List[int]]:
+        """将文本分割成句子，同时提取引文
+        Args:
+            text: 输入文本
+            split_rule: 分句规则
+        Returns:
+            Tuple[List[Tuple[str, int, int, int]], List[int]]: 
+                - 句子列表，每个元素为(句子内容, 开始位置, 结束位置, 句子编号)
+                - 引文句子的索引列表
+        """
+        sentences = []
+        quotes_idx = []
+        
+        # 首先提取所有引文和非引文部分
+        text_segments = []  # [(文本内容, 是否为引文, 开始位置, 结束位置)]
+        current_pos = 0
+        
         quote_pairs = [
             ('"', '"'),
             ('“', '”'),
@@ -35,100 +85,66 @@ class TextPreprocessor:
             ('『', '』')
         ]
         
-        for start_quote, end_quote in quote_pairs:
-            # 为每对引号构建正则表达式
-            pattern = f"{start_quote}([^{start_quote}{end_quote}]*){end_quote}"
-            for match in re.finditer(pattern, text):
-                quotes.append((match.group(1), match.start(), match.end()))
-        
-        return quotes
-
-    @staticmethod
-    def split_sentences(text: str) -> Tuple[List[Tuple[str, int, int, int]], List[int]]:
-        """将文本分割成句子，同时提取引文
-        Args:
-            text: 输入文本
-        Returns:
-            Tuple[List[Tuple[str, int, int, int]], List[int]]: 
-                - 句子列表，每个元素为(句子内容, 开始位置, 结束位置, 句子编号)
-                - 引文句子的索引列表
-        """
-        sentences = []
-        quotes_idx = []
-        
-        # 首先提取所有引文
-        quote_pairs = [
-            ('"', '"'),
-            ('“', '”'),
-            (''', '''),
-            ('’', '‘'),
-            ('「', '」'),
-            ('『', '』')
-        ]
-        
         # 记录所有引文的位置
         quote_positions = []
         for start_quote, end_quote in quote_pairs:
             pattern = f"{start_quote}([^{start_quote}{end_quote}]*){end_quote}"
             for match in re.finditer(pattern, text):
-                quote_positions.append((match.start(), match.end(), match.group(1)))
+                quote_positions.append((match.start(), match.end()))
         
         # 按位置排序引文
         quote_positions.sort(key=lambda x: x[0])
         
-        # 处理文本，将引文和非引文部分分别处理
-        current_pos = 0
-        for quote_start, quote_end, quote_content in quote_positions:
-            # 处理引文前的文本
-            if current_pos < quote_start:
-                non_quote_text = text[current_pos:quote_start]
-                pattern = r'([。！？])\s*'
-                start = 0
-                for match in re.finditer(pattern, non_quote_text):
-                    end = match.end()
-                    sentence = non_quote_text[start:end].strip()
-                    if sentence:
-                        abs_start = current_pos + start
-                        abs_end = current_pos + end
-                        sentences.append((sentence, abs_start, abs_end, len(sentences)))
-                    start = end
-                # 处理最后一个非完整句子
-                if start < len(non_quote_text):
-                    remaining = non_quote_text[start:].strip()
-                    if remaining:
-                        abs_start = current_pos + start
-                        abs_end = quote_start
-                        sentences.append((remaining, abs_start, abs_end, len(sentences)))
-            
-            # 处理引文
-            quote_sentence = text[quote_start:quote_end]
-            sentences.append((quote_sentence, quote_start, quote_end, len(sentences)))
-            quotes_idx.append(len(sentences) - 1)
-            current_pos = quote_end
+        # 将文本分割成引文和非引文部分
+        last_end = 0
+        for quote_start, quote_end in quote_positions:
+            if last_end < quote_start:
+                text_segments.append((text[last_end:quote_start], False, last_end, quote_start))
+            text_segments.append((text[quote_start:quote_end], True, quote_start, quote_end))
+            last_end = quote_end
         
-        # 处理最后一段非引文文本
-        if current_pos < len(text):
-            remaining_text = text[current_pos:]
-            pattern = r'([。！？])\s*'
-            start = 0
-            for match in re.finditer(pattern, remaining_text):
-                end = match.end()
-                sentence = remaining_text[start:end].strip()
-                if sentence:
-                    abs_start = current_pos + start
-                    abs_end = current_pos + end
-                    sentences.append((sentence, abs_start, abs_end, len(sentences)))
-                start = end
-            # 处理最后一个句子
-            if start < len(remaining_text):
-                sentence = remaining_text[start:].strip()
-                if sentence:
-                    abs_start = current_pos + start
-                    abs_end = len(text)
-                    sentences.append((sentence, abs_start, abs_end, len(sentences)))
+        if last_end < len(text):
+            text_segments.append((text[last_end:], False, last_end, len(text)))
+        
+        # 根据split_rule选择分句模式
+        times = 1
+        if split_rule == '遇到类句号标点一分':
+            pattern = r'([。！？.!?])'
+        elif split_rule == '遇到标点一分':
+            pattern = r'([，。！？：；、,.!?:;])'
+        elif split_rule == '遇到标点2句一分':
+            pattern = r'([，。！？：；、,.!?:;])'
+            times = 2
+        elif split_rule == '遇到标点4句一分':
+            pattern = r'([，。！？：；、,.!?:;])'
+            times = 4
+        elif split_rule == '遇到回车一分':
+            pattern = r'(\n)'
+        elif split_rule == '遇到空格一分':
+            pattern = r'(\s)'
+        
+        punctuation_pattern = r'^[，。！？：；、‘’”“,.!?:;\s\n]+$'
+        # 处理每个文本段
+        sentence_idx = 0
+        for segment_text, is_quote, start_pos, end_pos in text_segments:
+            if re.match(punctuation_pattern, segment_text):
+                continue
+            if is_quote:
+                # 引文作为单独的句子
+                sentences.append((segment_text, start_pos, end_pos, sentence_idx))
+                quotes_idx.append(sentence_idx)
+                sentence_idx += 1
+            else:
+                # 对非引文部分进行分句
+                segment_sentences = TextPreprocessor._split_by_regex(segment_text, pattern, times)
+                for sent_text, rel_start, rel_end in segment_sentences:
+                    abs_start = start_pos + rel_start
+                    abs_end = start_pos + rel_end
+                    sentences.append((sent_text, abs_start, abs_end, sentence_idx))
+                    sentence_idx += 1
         
         return sentences, quotes_idx
-
+    
     @staticmethod
     def get_context(sentences: List[Tuple[str, int, int, int]], 
                     quote_idx: int,

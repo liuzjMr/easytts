@@ -97,7 +97,7 @@ def text_to_speech():
 def split_sentences():
     """
     文本分句API
-    请求体格式: {"text": "要分句的文本内容"}
+    请求体格式: {'text_dir': 文本文件路径, 'split_rule': 分句规则}
     返回格式: {
         "success": true/false,
         "sentences": ["句子1", "句子2", ...],
@@ -106,14 +106,14 @@ def split_sentences():
     """
     try:
         data = request.json
-        if not data or 'text_dir' not in data:
+        if not data or 'text_dir' not in data or 'split_rule' not in data:
             return jsonify({'success': False, 'error': '缺少文本参数'})
         
         text_dir = data['text_dir']
         
         text = get_text_from_file(text_dir)
         # 调用split_sentences函数
-        sentences, quotes_idx = TextPreprocessor.split_sentences(text)
+        sentences, quotes_idx = TextPreprocessor.split_sentences(text, data['split_rule'])
         # 将sentences和quotes_idx存储到文件text_dir去除后缀+_sentences.json中
         # 获取文件名（不含扩展名）和路径
         base_name = os.path.splitext(text_dir)[0]

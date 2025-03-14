@@ -185,7 +185,7 @@
               <property name="geometry">
                <rect>
                 <x>0</x>
-                <y>-625</y>
+                <y>0</y>
                 <width>591</width>
                 <height>1283</height>
                </rect>
@@ -329,6 +329,39 @@
                      <height>0</height>
                     </size>
                    </property>
+                   <property name="currentText">
+                    <string>遇到类句号标点一分</string>
+                   </property>
+                   <item>
+                    <property name="text">
+                     <string>遇到类句号标点一分</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>遇到标点一分</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>遇到标点2句一分</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>遇到标点4句一分</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>遇到回车一分</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>遇到空格一分</string>
+                    </property>
+                   </item>
                   </widget>
                  </item>
                  <item>

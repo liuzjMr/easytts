@@ -82,6 +82,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.audioPlayer2.beforeButton.hide()
         self.audioPlayer2.nextButton.hide()
         self.ttsSet.saveSetButton.hide()
+        
+        # self.splitRuleComboBox.addItems(["遇到类句号标点一分", "遇到标点一分","遇到标点2句一分","遇到标点4句一分","遇到回车一分","遇到空格一分"])
     
     def setup_connections(self):
         # 页面切换按钮
@@ -228,6 +230,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def split_sentences(self):
         """分割文本为句子并为每个句子创建显示组件"""
         if not self.cache_file_path:
+            '''TODO: 仅有文字时也要可以进行，在这里最好自动保存一下文件，以免用户修改而我们获取的还是路径下的文件 '''
             QMessageBox.warning(self, "警告", "请先打开文件")
             return
             
@@ -237,7 +240,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         try:
             # 访问api/split-sentences
-            response = requests.post('http://localhost:10032/api/split-sentences', json={'text_dir': self.cache_file_path})
+            response = requests.post('http://localhost:10032/api/split-sentences', json={'text_dir': self.cache_file_path, 'split_rule': self.splitRuleComboBox.currentText()})
             
             if not response.ok:
                 QMessageBox.critical(self, "错误", f"服务器响应错误: {response.status_code}")
