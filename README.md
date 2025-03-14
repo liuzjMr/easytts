@@ -24,7 +24,7 @@
 ### 克隆仓库
 
 ```bash
-git clone https://github.com/yourusername/easytts.git
+git clone https://github.com/Warma10032/easytts.git
 cd easytts
 ```
 
@@ -54,7 +54,7 @@ source ~/.zshrc   # 如果使用 zsh
 
 更多 uv 安装方法参考：[Installing uv](https://docs.astral.sh/uv/getting-started/installation/)
 
-确认 uv 已正确安装: 
+确认 uv 已正确安装:
 
 ```bash
 uv --version
@@ -112,7 +112,6 @@ uv run python main.py
 ## 许可证
 
 Apache-2.0
-
 
 ## 贡献
 
