@@ -8,6 +8,7 @@ from src.ui.Ui_main_window import Ui_MainWindow
 
 from src.sentence_display import SentenceDisplay
 from src.speaker_tts_set import SpeakerTTSSet
+from src.blocked_progressbar import BlockedProgressBar
 from src.utils import *
 
 import json
@@ -33,6 +34,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.thread_pool = QThreadPool()
         self.thread_pool.setMaxThreadCount(8)  # 限制最大线程数为8
         self.active_workers = []
+        
+        # 初始化进度条窗口（会自动建立WebSocket连接）
+        self.progress_window = BlockedProgressBar(self)
     
         # 连接信号和槽
         self.setup_connections()
@@ -60,6 +64,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.audioPlayer.player.stop()
             if hasattr(self, 'audioPlayer2'):
                 self.audioPlayer2.player.stop()
+            # 断开WebSocket连接
+            if hasattr(self, 'progress_window') and self.progress_window.sio.connected:
+                self.progress_window.sio.disconnect()
                 
             # 清理所有句子显示组件
             self.clear_sentence_displays()
@@ -76,6 +83,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         except Exception as e:
             print(f"关闭时出错：{str(e)}")
             event.accept()  # 即使出错也关闭窗口
+            
     def init_ui(self):
         self.audioPlayer.beforeButton.hide()
         self.audioPlayer.nextButton.hide()
@@ -83,8 +91,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.audioPlayer2.nextButton.hide()
         self.ttsSet.saveSetButton.hide()
         
-        # self.splitRuleComboBox.addItems(["遇到类句号标点一分", "遇到标点一分","遇到标点2句一分","遇到标点4句一分","遇到回车一分","遇到空格一分"])
-    
     def setup_connections(self):
         # 页面切换按钮
         self.pageButton1.clicked.connect(lambda: self.pageStackedWidget.setCurrentIndex(0))
@@ -96,6 +102,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.ttsSet.generateButton.clicked.connect(self.on_generate_clicked)
         
     def on_generate_clicked(self):
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            QMessageBox.warning(self, "警告", "已有正在进行的TTS任务，请等待完成")
+            return
+        
         text = self.ttsTextEdit.toPlainText()
         service = self.ttsSet.ttsProviderComboBox.currentText()
         voice_name = self.ttsSet.edgeTTSVoiceSet.currentText()
@@ -300,53 +310,59 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if not os.path.exists(os.path.join(self.project_root, 'cache', 'text', self.book_base_name + '_sentences.json')):
             QMessageBox.warning(self, "警告", "请先进行分句")
             return
+        
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            QMessageBox.warning(self, "警告", "已有正在进行的TTS任务，请等待完成")
+            return
 
-        try:
-            pre_size = self.preContextSpinBox.value()
-            post_size = self.postContextSpinBox.value()
-            # 访问api/identify-speaker
-            response = requests.post('http://localhost:10032/api/identify-speaker', json={'base_dir': self.book_base_name, 'pre_size': pre_size, 'post_size': post_size})
-
-            if not response.ok:
-                QMessageBox.critical(self, "错误", f"服务器响应错误: {response.status_code}")
-                return
-
-            data = response.json()
+        # 创建并启动工作线程
+        self.worker = IdentifySpeakerWorker(self.book_base_name, 
+                                        self.preContextSpinBox.value(),
+                                        self.postContextSpinBox.value())
+        self.worker.finished.connect(self.handle_identify_speaker_result)
+        self.worker.error.connect(self.handle_identify_speaker_error)
+        self.worker.progress.connect(self.progress_window.update_progress) 
+        self.worker.start()
+        
+        self.progress_window.show()
+        
+    def handle_identify_speaker_result(self, data):
+        if data['success']:
+            self.cache_speakers_path = data['speakers_dir']
+            self.cache_nbest_path = data['nbest_dir']
 
             # 读取并更新句子显示组件的说话人信息
-            if data['success']:
-                self.cache_speakers_path = data['speakers_dir']
-                self.cache_nbest_path = data['nbest_dir']
+            try:
+                with open(self.cache_speakers_path, 'r', encoding='utf-8') as f:
+                    speakers_data = json.load(f)
 
-                # 读取并更新句子显示组件的说话人信息
-                try:
-                    with open(self.cache_speakers_path, 'r', encoding='utf-8') as f:
-                        speakers_data = json.load(f)
+                # 遍历所有说话人预测结果
+                for sentence_id, speaker_name in speakers_data.items():
+                    # 从 "sentence_X" 中提取索引数字
+                    sentence_index = int(sentence_id.split('_')[1])
 
-                    # 遍历所有说话人预测结果
-                    for sentence_id, speaker_name in speakers_data.items():
-                        # 从 "sentence_X" 中提取索引数字
-                        sentence_index = int(sentence_id.split('_')[1])
-
-                        # 找到对应的句子显示组件并更新说话人信息
-                        for i in range(self.sentenceDisplayLayout.count()):
-                            sentence_widget = self.sentenceDisplayLayout.itemAt(i).widget()
-                            if sentence_widget and sentence_widget.sentence_index == sentence_index:
-                                sentence_widget.speakerLabel.setText(speaker_name)
-                                break
+                    # 找到对应的句子显示组件并更新说话人信息
+                    for i in range(self.sentenceDisplayLayout.count()):
+                        sentence_widget = self.sentenceDisplayLayout.itemAt(i).widget()
+                        if sentence_widget and sentence_widget.sentence_index == sentence_index:
+                            sentence_widget.speakerLabel.setText(speaker_name)
+                            break
+                
+                # 更新说话人列表
+                self.update_speakers_list()
                     
-                    # 更新说话人列表
-                    self.update_speakers_list()
-                        
-                    QMessageBox.information(self, "说话人识别完成", f"成功识别 {len(speakers_data)} 个说话人")
+                QMessageBox.information(self, "说话人识别完成", f"成功识别 {len(speakers_data)} 个说话人")
 
-                except Exception as e:
-                    QMessageBox.critical(self, "错误", f"读取说话人数据失败: {str(e)}")
-            else:
-                QMessageBox.critical(self, "错误", f"说话人识别失败: {data.get('error', '未知错误')}")
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"说话人识别请求失败: {str(e)}")
+            except Exception as e:
+                QMessageBox.critical(self, "错误", f"读取说话人识别数据失败: {str(e)}")
+        else:
+            self.progress_window.hide()  # 出错时关闭进度条窗口
+            QMessageBox.critical(self, "错误", f"说话人识别失败: {data.get('error', '未知错误')}")
 
+    def handle_identify_speaker_error(self, error_msg):
+        self.progress_window.hide()  # 出错时关闭进度条窗口
+        QMessageBox.critical(self, "错误", f"说话人识别请求失败: {error_msg}")
+    
     def update_speakers_set(self):
         """从所有sentenceDisplay组件中获取说话人集合"""
         self.speakers_set = set()

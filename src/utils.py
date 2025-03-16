@@ -1,6 +1,9 @@
 import requests
 from PyQt6.QtCore import QThread, pyqtSignal, QRunnable, QObject
 from pathlib import Path
+from tqdm import tqdm
+import time
+import socketio
 import chardet
 
 class TTSWorker(QThread):
@@ -46,6 +49,96 @@ class TTSPoolWorker(QRunnable):
         except Exception as e:
             self.signals.error.emit(str(e))
 
+class IdentifySpeakerWorker(QThread):
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+    progress = pyqtSignal(dict)  # 新增进度信号
+    
+    def __init__(self, base_dir, pre_size, post_size):
+        super().__init__()
+        self.base_dir = base_dir
+        self.pre_size = pre_size
+        self.post_size = post_size
+        self.sio = socketio.Client(
+            reconnection=True,
+            reconnection_attempts=3
+        )
+        self.setup_socket_events()
+        
+    def setup_socket_events(self):
+        @self.sio.on('connect')
+        def on_connect():
+            print('Connected to server')
+            
+        @self.sio.on('disconnect')
+        def on_disconnect():
+            print('Disconnected from server')
+            
+        @self.sio.on('progress_update')
+        def on_progress_update(data):
+            print(f"Progress update received: {data}")  # 添加调试输出
+            self.progress.emit(data)
+            
+    def run(self):
+        try:
+            # 确保WebSocket连接成功
+            if not self.sio.connected:
+                self.sio.connect('http://localhost:10032', 
+                               wait_timeout=10,
+                               socketio_path='socket.io')
+                
+            # 等待连接确认
+            connection_timeout = 5  # 5秒超时
+            start_time = time.time()
+            while not self.sio.connected:
+                if time.time() - start_time > connection_timeout:
+                    raise Exception("WebSocket连接超时")
+                self.sleep(0.1)
+            
+            # 发送API请求
+            response = requests.post('http://localhost:10032/api/identify-speaker', 
+                                  json={'base_dir': self.base_dir, 
+                                       'pre_size': self.pre_size, 
+                                       'post_size': self.post_size})
+            
+            if response.status_code != 200:
+                raise Exception(f"API请求失败: {response.text}")
+                
+            self.finished.emit(response.json())
+            
+        except Exception as e:
+            self.error.emit(str(e))
+        finally:
+            if self.sio.connected:
+                self.sio.disconnect()
+            self.finished.connect(self.deleteLater)
+            self.error.connect(self.deleteLater)
+
+
+class WebSocketTqdm(tqdm):
+    """
+    通过WebSocket发送进度更新的tqdm子类
+    """
+    def __init__(self, *args, socketio=None, task_id=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.socketio = socketio
+        self.task_id = task_id
+        
+    def update(self, n=1):
+        super().update(n)
+        # 发送进度更新
+        if self.socketio:
+            # 使用实际存在的format_dict属性
+            self.socketio.emit('progress_update', {
+                'task_id': self.task_id,
+                'percentage': 100 * self.n / self.total if self.total else 0,
+                'current': self.n,
+                'total': self.total,
+                'elapsed': self.format_dict['elapsed'],
+                'rate': self.format_dict['rate'] if self.format_dict['rate'] is not None else 0,
+                'prefix': self.format_dict['prefix'],
+                'raw_output': self.__str__()
+            })
 
 def get_text_from_file(input_file: str) -> str:
     def read_text_file(file_path):

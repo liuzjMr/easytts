@@ -11,9 +11,10 @@ from src.speaker_identification.csi.evaluate.cmrc2018_output import write_predic
 from src.speaker_identification.csi.tokenizations import official_tokenization as tokenization
 from src.speaker_identification.csi.preprocess.cmrc2018_preprocess import json2features
 from src.speaker_identification.csi.preprocess import utils
+from src.utils import WebSocketTqdm
 
 
-def evaluate(model, args, eval_examples, eval_features, device):
+def evaluate(model, args, eval_examples, eval_features, device, socketio=None, task_id=None):
     """评估函数：计算模型预测结果并输出到文件
     Args:
         model: BERT问答模型
@@ -41,7 +42,8 @@ def evaluate(model, args, eval_examples, eval_features, device):
     model.eval()
     all_results = []
     print("Start evaluating")
-    for input_ids, input_mask, segment_ids, example_indices in tqdm(eval_dataloader, desc="Evaluating"):
+    # 使用WebSocketTqdm替代普通tqdm
+    for input_ids, input_mask, segment_ids, example_indices in WebSocketTqdm(eval_dataloader, desc="Evaluating", socketio=socketio, task_id=task_id):
         input_ids = input_ids.to(device)
         input_mask = input_mask.to(device)
         segment_ids = segment_ids.to(device)

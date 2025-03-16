@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
+from flask_socketio import SocketIO
 import asyncio
 import os
 import json
@@ -17,11 +18,12 @@ from src.speaker_identification.csi.tokenizations import official_tokenization a
 from src.speaker_identification.csi.preprocess.cmrc2018_preprocess import json2features
 from src.speaker_identification.csi.preprocess import utils
 from src.speaker_identification.csi.test_si import evaluate
-from src.utils import get_text_from_file
+from src.utils import get_text_from_file, WebSocketTqdm
 
 
 app = Flask(__name__)
 CORS(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # 配置文件路径
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -199,7 +201,7 @@ def identify_speaker():
         # 准备评估参数
         eval_args = argparse.Namespace(
             gpu_ids='0',
-            n_batch=32,
+            n_batch=1,
             max_ans_length=50,
             n_best=6,
             vocab_size=21128,
@@ -246,8 +248,10 @@ def identify_speaker():
         utils.torch_init_model(model, eval_args.init_restore_dir)
         model.to(device)
         
-        # 进行评估
-        evaluate(model, eval_args, dev_examples, dev_features, device)
+        # 生成唯一的任务ID
+        task_id = str(time.time())
+        # 进行评估，传入socketio和task_id
+        evaluate(model, eval_args, dev_examples, dev_features, device, socketio=socketio, task_id=task_id)
         
         # 返回结果路径
         prediction_path = os.path.join(checkpoint_dir, "predictions.json")
@@ -281,6 +285,7 @@ def serve_audio(filename):
     return send_file(os.path.join(AUDIO_DIR, filename))
 
 if __name__ == '__main__':
+    
     app.run(
         host='127.0.0.1',  
         port=10032,         # 使用其他端口

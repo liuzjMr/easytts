@@ -10,6 +10,7 @@ dependencies = [
     "edge-tts>=7.0.0",
     "flask==3.0.1",
     "flask-cors>=5.0.0",
+    "flask-socketio>=5.5.1",
     "jieba==0.42.1",
     "pydantic>=2.10.6",
     "pyqt6==6.4.2",
@@ -20,6 +21,7 @@ dependencies = [
     "tensorflow-io-gcs-filesystem==0.31.0",
     "torch>=2.5.1",
     "tqdm>=4.67.1",
+    "websocket-client>=1.8.0",
 ]
 
 [project.optional-dependencies]
