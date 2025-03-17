@@ -95,9 +95,21 @@ class TextPreprocessor:
         # 按位置排序引文
         quote_positions.sort(key=lambda x: x[0])
         
+        # 删除被包含在其他引文内的引文
+        quote_filtered_positions = []
+        for i, (start, end) in enumerate(quote_positions):
+            # 检查当前引文是否被其他引文包含
+            is_contained = False
+            for j, (other_start, other_end) in enumerate(quote_positions):
+                if i != j and other_start <= start and end <= other_end:
+                    is_contained = True
+                    break
+            if not is_contained:
+                quote_filtered_positions.append((start, end))
+        
         # 将文本分割成引文和非引文部分
         last_end = 0
-        for quote_start, quote_end in quote_positions:
+        for quote_start, quote_end in quote_filtered_positions:
             if last_end < quote_start:
                 text_segments.append((text[last_end:quote_start], False, last_end, quote_start))
             text_segments.append((text[quote_start:quote_end], True, quote_start, quote_end))

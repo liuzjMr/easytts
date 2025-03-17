@@ -37,21 +37,6 @@ os.makedirs(TEXT_DIR, exist_ok=True)
 PRED_DIR = os.path.join(ROOT_DIR, "cache", "speaker_identification")
 os.makedirs(PRED_DIR, exist_ok=True)
 
-text_preprocessor = None
-
-# 延迟初始化TextPreprocessor
-def get_text_preprocessor():
-    global text_preprocessor
-    if text_preprocessor is None:
-        # 确保名称文件存在
-        os.makedirs(os.path.dirname(NAME_FILE), exist_ok=True)
-        if not os.path.exists(NAME_FILE):
-            # 如果名称文件不存在，创建一个空文件
-            with open(NAME_FILE, 'w', encoding='utf-8') as f:
-                pass
-        text_preprocessor = TextPreprocessor(NAME_FILE)
-    return text_preprocessor
-
 
 class TTSConfig(BaseModel):
     text: str

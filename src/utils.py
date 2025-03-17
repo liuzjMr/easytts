@@ -28,26 +28,23 @@ class TTSWorker(QThread):
             self.error.connect(self.deleteLater)
 
 
-# 创建信号发射器
-class TTSPoolWorkerSignals(QObject):
+class TTSPoolWorker(QRunnable):
     finished = pyqtSignal(dict)
     error = pyqtSignal(str)
-
-class TTSPoolWorker(QRunnable):
+    
     def __init__(self, text, service, config):
         super().__init__()
         self.text = text
         self.service = service
         self.config = config
-        self.signals = TTSPoolWorkerSignals()
     
     def run(self):
         try:
             response = requests.post('http://127.0.0.1:10032/api/tts', 
                                   json={"text": self.text, "service": self.service, "config": self.config})
-            self.signals.finished.emit(response.json())
+            self.finished.emit(response.json())
         except Exception as e:
-            self.signals.error.emit(str(e))
+            self.error.emit(str(e))
 
 class IdentifySpeakerWorker(QThread):
     finished = pyqtSignal(dict)
@@ -136,7 +133,7 @@ class WebSocketTqdm(tqdm):
                 'total': self.total,
                 'elapsed': self.format_dict['elapsed'],
                 'rate': self.format_dict['rate'] if self.format_dict['rate'] is not None else 0,
-                'prefix': self.format_dict['prefix'],
+                'prefix': self.format_dict['prefix'] if self.format_dict['prefix'] is not None else '',
                 'raw_output': self.__str__()
             })
 

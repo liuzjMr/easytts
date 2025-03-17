@@ -6,6 +6,7 @@ class BlockedProgressBar(QtWidgets.QWidget, Ui_Form):
     _instance = None
     
     def __new__(cls, parent=None):
+        '''单例模式, 重写 __new__ 方法, 第一次创建实例时保存到_instance, 之后都返回同一个实例'''
         if cls._instance is None:
             cls._instance = super(BlockedProgressBar, cls).__new__(cls)
             super(BlockedProgressBar, cls._instance).__init__(parent)
@@ -16,19 +17,22 @@ class BlockedProgressBar(QtWidgets.QWidget, Ui_Form):
             self.setupUi(self)
             self._initialized = True
             
-            # 设置窗口标志
             self.setWindowFlags(QtCore.Qt.WindowType.Window | 
-                              QtCore.Qt.WindowType.WindowStaysOnTopHint)
+                              QtCore.Qt.WindowType.CustomizeWindowHint |
+                              QtCore.Qt.WindowType.WindowTitleHint |
+                              QtCore.Qt.WindowType.WindowMinimizeButtonHint)
             
             # 连接按钮信号
-            self.stopButton.clicked.connect(self.hide)
+            '''TODO: 停止按钮停止后端任务'''
+            # self.stopButton.clicked.connect(self.hide)
     
     @pyqtSlot(dict)
     def update_progress(self, data):
         if 'percentage' in data:
             percentage = data['percentage']
+            prefix = data['prefix']
             self.progressBar.setValue(int(percentage))
-            self.setWindowTitle(f"处理进度: {percentage:.1f}%")
+            self.setWindowTitle(f"{prefix} - 处理进度: {percentage:.1f}%")
             
             # 如果进度达到100%，自动隐藏窗口
             if percentage >= 100:
