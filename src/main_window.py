@@ -64,9 +64,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.audioPlayer.player.stop()
             if hasattr(self, 'audioPlayer2'):
                 self.audioPlayer2.player.stop()
-            # 断开WebSocket连接
-            if hasattr(self, 'progress_window') and self.progress_window.sio.connected:
-                self.progress_window.sio.disconnect()
                 
             # 清理所有句子显示组件
             self.clear_sentence_displays()
@@ -330,7 +327,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if data['success']:
             self.cache_speakers_path = data['speakers_dir']
             self.cache_nbest_path = data['nbest_dir']
-
+            self.progress_window.hide()
             # 读取并更新句子显示组件的说话人信息
             try:
                 with open(self.cache_speakers_path, 'r', encoding='utf-8') as f:

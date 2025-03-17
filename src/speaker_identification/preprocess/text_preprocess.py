@@ -178,13 +178,15 @@ class TextPreprocessor:
         quote_sentence = sentences[quote_idx][0]
         
         # 获取前文
-        pre_context = []
+        pre_context = ""
         for i in range(max(0, quote_idx - pre_size), quote_idx):
-            pre_context.append(sentences[i][0])
+            pre_context += sentences[i][0]
+        pre_context = pre_context.strip()
 
         # 获取后文
-        post_context = []
+        post_context = ""
         for i in range(quote_idx + 1, min(len(sentences), quote_idx + post_size + 1)):
-            post_context.append(sentences[i][0])
+            post_context += sentences[i][0]
+        post_context = post_context.strip()
         
         return pre_context, quote_sentence, post_context
