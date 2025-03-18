@@ -273,6 +273,6 @@ if __name__ == '__main__':
     
     app.run(
         host='127.0.0.1',  
-        port=10032,         # 使用其他端口
+        port=10032,
         debug=True
     )

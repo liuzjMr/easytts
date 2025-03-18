@@ -27,6 +27,10 @@ class TTSWorker(QThread):
             self.finished.connect(self.deleteLater)
             self.error.connect(self.deleteLater)
 
+# 添加一个信号类
+class TTSPoolWorkerSignals(QObject):
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
 
 class TTSPoolWorker(QRunnable):
     finished = pyqtSignal(dict)
@@ -37,14 +41,15 @@ class TTSPoolWorker(QRunnable):
         self.text = text
         self.service = service
         self.config = config
+        self.signals = TTSPoolWorkerSignals()
     
     def run(self):
         try:
             response = requests.post('http://127.0.0.1:10032/api/tts', 
                                   json={"text": self.text, "service": self.service, "config": self.config})
-            self.finished.emit(response.json())
+            self.signals.finished.emit(response.json())
         except Exception as e:
-            self.error.emit(str(e))
+            self.signals.error.emit(str(e))
 
 class IdentifySpeakerWorker(QThread):
     finished = pyqtSignal(dict)

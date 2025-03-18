@@ -620,7 +620,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for speaker_name in self.speakers_set:
             if speaker_name not in speaker_settings:
                 QMessageBox.warning(self, "警告", f"未找到说话人 {speaker_name} 的TTS设置")
-                break
+                return
                 
         # 遍历所有句子进行TTS生成
         total_tasks = self.sentenceDisplayLayout.count()
