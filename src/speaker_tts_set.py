@@ -10,7 +10,7 @@ class SpeakerTTSSet(QWidget, Ui_speakerTTSSet):
         # 初始化属性
         self.speaker_name = speaker_name
         self.service = "Edge TTS"
-        self.config = {"language": "中文", "voice_name": "晓晓（女）"}
+        self.config = {"language": "中文", "voice_name": "晓晓（女，普通话，温暖）"}
         
         # 设置说话人标签
         self.speakerLabel.setText(speaker_name)

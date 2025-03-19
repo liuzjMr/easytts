@@ -60,7 +60,8 @@ def text_to_speech():
         tts_config = TTSConfig(**request.json)
         file_hash = hash((tts_config.text, tts_config.service, json.dumps(tts_config.config)))
         output_file = os.path.join(ROOT_DIR, AUDIO_DIR, f'{file_hash}.mp3')
-        
+        if os.path.exists(output_file):
+            return jsonify({'success': True, 'audio_url': output_file})
         # 获取对应的 TTS 客户端
         client = tts_clients.get(tts_config.service)
         if not client:

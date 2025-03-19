@@ -27,30 +27,26 @@ class TTSSet(QWidget, Ui_TTSSet):
         
         # 设置语种下拉框
         self.edgeTTSLanguageSet.clear()
-        languages = ["普通话", "香港", "台湾", "韩语", "日语", "英语"]
+        languages = ["中文", "韩语", "日语", "英语"]
         self.edgeTTSLanguageSet.addItems(languages)
         
         # 定义所有语音选项
         self.voices_mapping = {
-            "普通话": [
-                {"name": "云健（男，热情）", "id": "zh-CN-YunjianNeural"},
-                {"name": "云希（男，阳光）", "id": "zh-CN-YunxiNeural"},
-                {"name": "云霄（男，可爱）", "id": "zh-CN-YunxiaNeural"},
-                {"name": "云扬（男，专业）", "id": "zh-CN-YunyangNeural"},
-                {"name": "晓晓（女，温暖）", "id": "zh-CN-XiaoxiaoNeural"},
-                {"name": "晓伊（女，活力）", "id": "zh-CN-XiaoyiNeural"},
-                {"name": "小北（女，幽默）", "id": "zh-CN-liaoning-XiaobeiNeural"},
-                {"name": "小妮（女，明亮）", "id": "zh-CN-shaanxi-XiaoniNeural"}
-            ],
-            "香港": [
-                {"name": "万龙（男，友好）", "id": "zh-HK-WanLungNeural"},
-                {"name": "晓妍（女，友好）", "id": "zh-HK-HiuGaaiNeural"},
-                {"name": "晓曼（女，友好）", "id": "zh-HK-HiuMaanNeural"}
-            ],
-            "台湾": [
-                {"name": "云哲（男，友好）", "id": "zh-TW-YunJheNeural"},
-                {"name": "晓陈（女，友好）", "id": "zh-TW-HsiaoChenNeural"},
-                {"name": "晓语（女，友好）", "id": "zh-TW-HsiaoYuNeural"}
+            "中文": [
+                {"name": "云健（男，普通话，热情）", "id": "zh-CN-YunjianNeural"},
+                {"name": "云希（男，普通话，阳光）", "id": "zh-CN-YunxiNeural"},
+                {"name": "云霄（男，普通话，可爱）", "id": "zh-CN-YunxiaNeural"},
+                {"name": "云扬（男，普通话，专业）", "id": "zh-CN-YunyangNeural"},
+                {"name": "万龙（男，粤语，友好）", "id": "zh-HK-WanLungNeural"},
+                {"name": "云哲（男，台湾腔，友好）", "id": "zh-TW-YunJheNeural"},
+                {"name": "晓晓（女，普通话，温暖）", "id": "zh-CN-XiaoxiaoNeural"},
+                {"name": "晓伊（女，普通话，活力）", "id": "zh-CN-XiaoyiNeural"},
+                {"name": "小北（女，东北话，幽默）", "id": "zh-CN-liaoning-XiaobeiNeural"},
+                {"name": "小妮（女，陕西话，明亮）", "id": "zh-CN-shaanxi-XiaoniNeural"},
+                {"name": "晓妍（女，粤语，友好）", "id": "zh-HK-HiuGaaiNeural"},
+                {"name": "晓曼（女，粤语，友好）", "id": "zh-HK-HiuMaanNeural"},
+                {"name": "晓陈（女，台湾腔，友好）", "id": "zh-TW-HsiaoChenNeural"},
+                {"name": "晓语（女，台湾腔，友好）", "id": "zh-TW-HsiaoYuNeural"}
             ],
             "韩语": [
                 {"name": "玄洙（男，友好）", "id": "ko-KR-HyunsuMultilingualNeural"},
@@ -82,7 +78,7 @@ class TTSSet(QWidget, Ui_TTSSet):
         self.edgeTTSLanguageSet.currentTextChanged.connect(self.on_language_changed)
         
         # 初始化音色列表
-        self.on_language_changed("普通话")
+        self.on_language_changed("中文")
         
     def on_language_changed(self, language):
         """处理语种变化"""
