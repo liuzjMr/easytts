@@ -2,7 +2,7 @@
 
 一个基于Flask的智能文本转语音(TTS)服务，集成了说话人识别功能，支持一键式多角色对话生成。
 
-目前该项目仍处于早期阶段，正在积极开发中。
+目前该项目仍处于早期阶段，正在积极开发中。有任何问题欢迎反馈。
 
 ## 功能特点
 
@@ -72,9 +72,9 @@ uv sync
 
 ### 下载模型文件
 
-到 [huggingface](https://huggingface.co/Warma10032/chinese-roberta-wwm-ext-large-csi-v1.0/) 下载模型后
+到 [huggingface](https://huggingface.co/Warma10032/chinese-roberta-wwm-ext-large-csi-v1/) 下载模型后
 
-将模型文件放置在项目的根目录的 `model/chinese-roberta-wwm-ext-large-csi-v1.0/` 目录下
+将模型文件放置在项目的根目录的 `model/chinese-roberta-wwm-ext-large-csi-v1/` 目录下
 
 ## 使用方法
 
