@@ -37,3 +37,4 @@ src/speaker_identification/csi/data/WP2021/dev_features_roberta512.json
 !src/speaker_identification/csi/data/WP2021/test_unsplit.json
 !src/speaker_identification/csi/data/WP2021/train.json
 
+easytts.spec

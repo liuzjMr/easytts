@@ -59,7 +59,7 @@ class TextPreprocessor:
         return filtered_sentences
 
     @staticmethod
-    def split_sentences(text: str, split_rule: str) -> Tuple[List[Tuple[str, int, int, int]], List[int]]:
+    def split_sentences(text: str, split_rule: str) -> Tuple[List[Tuple[str, int, int, int, bool]], List[int]]:
         """将文本分割成句子，同时提取引文
         Args:
             text: 输入文本
@@ -143,7 +143,7 @@ class TextPreprocessor:
                 continue
             if is_quote:
                 # 引文作为单独的句子
-                sentences.append((segment_text, start_pos, end_pos, sentence_idx))
+                sentences.append((segment_text, start_pos, end_pos, sentence_idx, True))
                 quotes_idx.append(sentence_idx)
                 sentence_idx += 1
             else:
@@ -152,13 +152,13 @@ class TextPreprocessor:
                 for sent_text, rel_start, rel_end in segment_sentences:
                     abs_start = start_pos + rel_start
                     abs_end = start_pos + rel_end
-                    sentences.append((sent_text, abs_start, abs_end, sentence_idx))
+                    sentences.append((sent_text, abs_start, abs_end, sentence_idx, False))
                     sentence_idx += 1
         
         return sentences, quotes_idx
     
     @staticmethod
-    def get_context(sentences: List[Tuple[str, int, int, int]], 
+    def get_context(sentences: List[Tuple[str, int, int, int, bool]], 
                     quote_idx: int,
                     pre_size: int = 3,
                     post_size: int = 3) -> Tuple[str, str, str]:
@@ -189,4 +189,16 @@ class TextPreprocessor:
             post_context += sentences[i][0]
         post_context = post_context.strip()
         
-        return pre_context, quote_sentence, post_context
+        question_context = ""
+        if quote_idx > 0 and not sentences[quote_idx-1][4]:
+            question_context += sentences[quote_idx-1][0]
+            question_context += quote_sentence
+        elif quote_idx < len(sentences)-1 and not sentences[quote_idx+1][4]:
+            question_context += quote_sentence
+            question_context += sentences[quote_idx+1][0]
+        else:
+            question_context += quote_sentence
+        question_context = question_context.strip()
+        
+        
+        return pre_context, quote_sentence, post_context, question_context

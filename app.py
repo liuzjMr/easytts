@@ -155,7 +155,7 @@ def identify_speaker():
         
         for idx in quotes_idx:
             # 获取上下文
-            pre_context, quote_sentence, post_context = TextPreprocessor.get_context(sentences=sentences, quote_idx=idx, pre_size=pre_size, post_size=post_size)
+            pre_context, quote_sentence, post_context, question_context = TextPreprocessor.get_context(sentences=sentences, quote_idx=idx, pre_size=pre_size, post_size=post_size)
             
             # 构造完整上下文
             full_context = f"{pre_context} {quote_sentence} {post_context}"
@@ -166,10 +166,10 @@ def identify_speaker():
                     "id": f"sentence_{idx}",
                     "context": full_context,
                     "qas": [{
-                        "question": quote_sentence,
+                        "question": question_context,
                         "id": f"sentence_{idx}",
                         "answers": [{
-                            "text": "占位",
+                            "text": "说话人",
                             "answer_start": 1
                         }]
                     }]
@@ -193,9 +193,9 @@ def identify_speaker():
             dev_dir1=os.path.join(TEXT_DIR, base_dir + '_examples.json'),
             dev_dir2=os.path.join(TEXT_DIR, base_dir + '_features.json'),
             dev_file=dataset_dir,
-            bert_config_file=os.path.join(ROOT_DIR, "model/chinese-roberta-wwm-ext-large-csi-v1.0/config.json"),
-            vocab_file=os.path.join(ROOT_DIR, "model/chinese-roberta-wwm-ext-large-csi-v1.0/vocab.txt"),
-            init_restore_dir=os.path.join(ROOT_DIR, "model/chinese-roberta-wwm-ext-large-csi-v1.0/csi-v1.0.pth"),
+            bert_config_file=os.path.join(ROOT_DIR, "model/chinese-roberta-wwm-ext-large-csi-v1/config.json"),
+            vocab_file=os.path.join(ROOT_DIR, "model/chinese-roberta-wwm-ext-large-csi-v1/vocab.txt"),
+            init_restore_dir=os.path.join(ROOT_DIR, "model/chinese-roberta-wwm-ext-large-csi-v1/csi-v1.pth"),
             checkpoint_dir=checkpoint_dir
         )
         
