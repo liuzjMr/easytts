@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QDialog, QMessageBox
+from PyQt6.QtWidgets import QDialog, QMessageBox, QVBoxLayout, QLabel, QHBoxLayout, QPushButton
+from PyQt6.QtCore import Qt
 from src.ui.Ui_tts_set_dialog import Ui_TTSSetDialog
 from src.utils import TTSWorker
 
@@ -64,14 +65,39 @@ class TTSSetDialog(QDialog, Ui_TTSSetDialog):
 
     def init_ui(self):
         # 设置窗口标题
-        self.setWindowTitle("TTS设置")
-        if self.text:
-            # 不展示saveSetButton
-            self.widget.saveSetButton.hide()
-        
         if self.speaker:
-            # 不展示generateButton
+            self.setWindowTitle(f"为角色 [{self.speaker}] 设置 TTS")
+            
+            # 添加标题标签显示当前设置的角色
+            titleLabel = QLabel(f"为角色 [{self.speaker}] 设置 TTS 参数")
+            titleLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            font = titleLabel.font()
+            font.setPointSize(12)
+            font.setBold(True)
+            titleLabel.setFont(font)
+            
+            # 将标题标签添加到现有布局的顶部
+            # 首先检查是否已有布局
+            mainLayout = self.layout()
+            if mainLayout:
+                # 在已有的布局中插入标题标签
+                mainLayout.insertWidget(0, titleLabel)
+            else:
+                # 如果没有布局，创建一个新的垂直布局
+                mainLayout = QVBoxLayout(self)
+                mainLayout.addWidget(titleLabel)
+                mainLayout.addWidget(self.widget)
+                self.setLayout(mainLayout)
+            
+        # 根据不同模式显示不同按钮
+        if self.text:
+            # 语音生成模式，不展示saveSetButton
+            self.widget.saveSetButton.hide()
+        else:
+            # 设置模式，不展示generateButton
             self.widget.generateButton.hide()
+            # 显示saveSetButton
+            self.widget.saveSetButton.show()
             
     def closeEvent(self, event):
         """重写关闭事件"""

@@ -603,7 +603,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
     def set_speaker(self):
         """设置说话人TTS配置"""
+        # 先清除现有的配置组件
+        while self.speakerSetLayout.count():
+            item = self.speakerSetLayout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+                
+        # 更新说话人集合
         self.update_speakers_set()
+        
         # 在speakerSetLayout中添加SpeakerTTSSet组件
         for speaker_name in self.speakers_set:
             speaker_tts_set = SpeakerTTSSet(speaker_name=speaker_name)
