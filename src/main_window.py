@@ -146,6 +146,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.speakerIdentificationButton.clicked.connect(self.identify_speaker)
         # 展示tableWidget让用户调整说话人
         self.normalizeBeginButton.clicked.connect(self.update_speakers_list)
+        self.editTableWidget.horizontalHeader().sectionDoubleClicked.connect(self.edit_header)
+        self.editTableWidget.customContextMenuRequested.connect(self.show_table_context_menu)
         # 根据tableWidget对说话人进行调整
         self.normalizeEndButton.clicked.connect(self.normalize_speaker)
         # 说话人识别结果保存按钮
@@ -388,7 +390,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         # 设置editTableWidget的拖放属性
         self.editTableWidget.setAcceptDrops(True)
-        self.editTableWidget.setDragDropMode(QAbstractItemView.DragDropMode.DropOnly)
+        self.editTableWidget.setDragEnabled(True) 
+        self.editTableWidget.setDragDropMode(QAbstractItemView.DragDropMode.DragDrop)  # 同时支持内部移动和外部拖入
+        self.editTableWidget.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         
         # 初始化表格
         self.editTableWidget.setRowCount(3)
@@ -397,16 +401,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 设置初始表头
         for i in range(3):
             header_item = QTableWidgetItem(f'角色{i+1}')
+            header_item.setData(Qt.ItemDataRole.UserRole, False)  # 添加自定义属性表示表头是否修改过
             self.editTableWidget.setHorizontalHeaderItem(i, header_item)
         
         # 设置列表头可编辑
         self.editTableWidget.horizontalHeader().setSectionsClickable(True)
-        self.editTableWidget.horizontalHeader().sectionDoubleClicked.connect(self.edit_header)
-        
         # 设置表格的上下文菜单策略
         self.editTableWidget.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-        self.editTableWidget.customContextMenuRequested.connect(self.show_table_context_menu)
-        
         # 连接拖放完成信号
         self.editTableWidget.dropEvent = self.handle_drop
         
@@ -419,7 +420,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                                       QLineEdit.EchoMode.Normal, current_text)
         if ok and text:
             item = QTableWidgetItem(text)
+            item.setData(Qt.ItemDataRole.UserRole, True)  # 标记为已修改
             self.editTableWidget.setHorizontalHeaderItem(logical_index, item)
+            
     def show_table_context_menu(self, pos):
         """显示表格的右键菜单"""
         menu = QMenu(self)
@@ -441,6 +444,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             current_cols = self.editTableWidget.columnCount()
             self.editTableWidget.setColumnCount(current_cols + 1)
             new_header = QTableWidgetItem(f'角色{current_cols + 1}')
+            new_header.setData(Qt.ItemDataRole.UserRole, False)
             self.editTableWidget.setHorizontalHeaderItem(current_cols, new_header)
         elif action == del_row_action:
             current_row = self.editTableWidget.currentRow()
@@ -455,26 +459,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         elif action == del_col_action:
             current_col = self.editTableWidget.currentColumn()
             if current_col >= 0:
-                # 保存当前所有列的表头文本
-                headers = []
-                for i in range(self.editTableWidget.columnCount()):
-                    if i != current_col:  # 跳过要删除的列
-                        header_item = self.editTableWidget.horizontalHeaderItem(i)
-                        header_text = header_item.text() if header_item else f'角色{i+1}'
-                        headers.append(header_text)
-                
                 # 获取该列所有单元格的文本
                 for row in range(self.editTableWidget.rowCount()):
                     item = self.editTableWidget.item(row, current_col)
                     if item and item.text():
                         # 将文本添加回showListWidget
                         self.showListWidget.addItem(QListWidgetItem(item.text()))
-                
                 self.editTableWidget.removeColumn(current_col)
-                
-                # 恢复其他列的表头文本
-                for i, header_text in enumerate(headers):
-                    self.editTableWidget.setHorizontalHeaderItem(i, QTableWidgetItem(header_text))
         
     def handle_drop(self, event):
         """处理拖放事件"""
@@ -485,49 +476,64 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         # 如果有有效的列
         if col >= 0:
-            # 获取拖放的数据
-            items = self.showListWidget.selectedItems()
+            # 根据拖放源获取选中项
+            if event.source() == self.showListWidget:
+                items = self.showListWidget.selectedItems()
+                is_from_list = True
+            elif event.source() == self.editTableWidget:
+                items = self.editTableWidget.selectedItems()
+                is_from_list = False
+            else:
+                event.ignore()
+                return
+                
             if not items:
                 event.ignore()
                 return
                 
-            # 使用最后一个拖入的角色名更新表头
-            last_item = items[-1]
-            header_item = QTableWidgetItem(last_item.text())
-            self.editTableWidget.setHorizontalHeaderItem(col, header_item)
+            # 获取当前表头项
+            header_item = self.editTableWidget.horizontalHeaderItem(col)
+            # 检查表头是否未被修改过
+            if not header_item.data(Qt.ItemDataRole.UserRole):
+                # 使用第一个拖入的角色名更新表头
+                new_header = QTableWidgetItem(items[0].text())
+                new_header.setData(Qt.ItemDataRole.UserRole, True)
+                self.editTableWidget.setHorizontalHeaderItem(col, new_header)
             
+            # 处理所有选中项
             for item in items:
-                # 如果目标位置已有内容，寻找该列的空位
-                target_row = row
-                if row >= 0 and self.editTableWidget.item(row, col) and self.editTableWidget.item(row, col).text():
-                    # 从第一行开始查找空位
-                    target_row = -1
-                    for r in range(self.editTableWidget.rowCount()):
-                        if not self.editTableWidget.item(r, col) or not self.editTableWidget.item(r, col).text():
-                            target_row = r
-                            break
-                    
-                    # 如果没有找到空位，增加一行
-                    if target_row == -1:
-                        current_rows = self.editTableWidget.rowCount()
-                        self.editTableWidget.setRowCount(current_rows + 1)
-                        target_row = current_rows
-                
-                # 如果是无效行（拖放到表格外部），则添加到最后一行
-                if target_row < 0:
-                    target_row = self.editTableWidget.rowCount() - 1
+                # 查找或创建目标行
+                target_row = self._find_or_create_target_row(row, col)
                 
                 # 创建表格项
                 table_item = QTableWidgetItem(item.text())
-                table_item.setFlags(table_item.flags() & ~Qt.ItemFlag.ItemIsEditable)  # 禁止编辑
-                # 设置到表格中
+                table_item.setFlags(table_item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self.editTableWidget.setItem(target_row, col, table_item)
-                # 从源列表中删除
-                self.showListWidget.takeItem(self.showListWidget.row(item))
+                
+                # 如果是从列表拖入，从源列表中删除
+                if is_from_list:
+                    self.showListWidget.takeItem(self.showListWidget.row(item))
+                # 如果是表格内部移动，删除原位置的项
+                else:
+                    self.editTableWidget.takeItem(item.row(), item.column())
             
             event.accept()
         else:
             event.ignore()
+    
+    def _find_or_create_target_row(self, row, col):
+        """查找或创建目标行"""
+        if row >= 0 and self.editTableWidget.item(row, col) is None:
+            return row
+        else:
+            # 从第一行开始查找空位
+            for r in range(self.editTableWidget.rowCount()):
+                if not self.editTableWidget.item(r, col) or not self.editTableWidget.item(r, col).text():
+                    return r
+            # 如果没有找到空位，则添加新行
+            current_rows = self.editTableWidget.rowCount()
+            self.editTableWidget.setRowCount(current_rows + 1)
+            return current_rows
         
     def normalize_speaker(self):
         """归一化说话人列表"""
