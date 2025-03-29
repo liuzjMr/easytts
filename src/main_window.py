@@ -487,6 +487,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if col >= 0:
             # 获取拖放的数据
             items = self.showListWidget.selectedItems()
+            if not items:
+                event.ignore()
+                return
+                
+            # 使用最后一个拖入的角色名更新表头
+            last_item = items[-1]
+            header_item = QTableWidgetItem(last_item.text())
+            self.editTableWidget.setHorizontalHeaderItem(col, header_item)
+            
             for item in items:
                 # 如果目标位置已有内容，寻找该列的空位
                 target_row = row
@@ -594,7 +603,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
     def set_speaker(self):
         """设置说话人TTS配置"""
+        # 先清除现有的配置组件
+        while self.speakerSetLayout.count():
+            item = self.speakerSetLayout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+                
+        # 更新说话人集合
         self.update_speakers_set()
+        
         # 在speakerSetLayout中添加SpeakerTTSSet组件
         for speaker_name in self.speakers_set:
             speaker_tts_set = SpeakerTTSSet(speaker_name=speaker_name)
